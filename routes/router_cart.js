@@ -1,20 +1,20 @@
 const express = require("express");
-const Order = require("../models/model_order");
+const Cart = require("../models/model_cart");
 const OrderItem = require("../models/model_orderItem");
-//const Product = require("../models/model_product");
 const router = express.Router();
 
-router.get("/allorders", async (req, res) => {
+router.get("/all", async (req, res) => {
   //console.log("Hii");
   try {
-    const orders = await Order.find().populate("user", "name")
-    .sort({ orderDate: -1 });
-    if (!orders) {
+    const cartItems = await Cart.find()
+      .populate("user", "name")
+      .sort({ addedDate: -1 });
+    if (!cartItems) {
       return res
         .status(404)
         .json({ success: false, message: "no orders placed" });
     }
-    return res.status(200).send(orders);
+    return res.status(200).send(cartItems);
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -23,29 +23,29 @@ router.get("/allorders", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const id = req.params.id;
-    const order = await Order.findById(id)
+    const cartItems = await Cart.findById(id)
       .populate("user", "name")
       .populate({
         path: "orderItems",
         populate: { path: "product", populate: "category" },
       })
-      .sort({ orderDate: -1 });
+      .sort({ addedDate: -1 });
 
-    if (!order) {
+    if (!cartItems) {
       return res
         .status(404)
         .json({ success: false, message: "order not found" });
     }
-    return res.status(200).send(order);
+    return res.status(200).send(cartItems);
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
 });
 
-router.post("/place_order", async (req, res) => {
+router.post("/add_to_cart", async (req, res) => {
   // console.log(req.body.orderItem);
   try {
-    const orderItem = req.body.orderItem;
+    const cartItem = req.body.item;
 
     const orderItemIds = await Promise.all(
       orderItem.map(async function (item) {
@@ -140,7 +140,6 @@ router.delete("/delete/:id", async (req, res) => {
       await Promise.all(
         response.orderItems.map(async (item) => {
           // console.log("1",item);
-
           await OrderItem.findByIdAndDelete(item);
         })
       );
@@ -171,10 +170,7 @@ router.get("/get/total_sales", async (req, res) => {
     res.status(200).send({ totalSales: totalSales.pop().total });
     //console.log(productList);
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: err.message,
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
